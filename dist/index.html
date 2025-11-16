@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>WorkSphere</title>
+  </head>
+  <body>
+    <aside class="side">
+      <p class="title-side">Staff Members (Unassigned)</p>
+      <div class="member-list">
+        <div class="member" draggable="true" data-type="it" id="1">
+          <div class="info">
+            <img src="assets/avatars/favatar.webp" alt="avatar" />
+            <div class="person-info">
+              <div class="name">suzi</div>
+              <div class="post">IT</div>
+            </div>
+          </div>
+          <div class="edit-btn">Edit</div>
+        </div>
+        <div class="member" draggable="true" data-type="it" id="2">
+          <div class="info">
+            <img src="assets/avatars/favatar.webp" alt="avatar" />
+            <div class="person-info">
+              <div class="name">angelika</div>
+              <div class="post">IT</div>
+            </div>
+          </div>
+          <div class="edit-btn">Edit</div>
+        </div>
+      </div>
+      <div class="btn btn-ajoute" id="add-member">Add new worker</div>
+    </aside>
+    <main id="main">
+      <div class="canvas" id="canvas">
+        <img class="map" src="assets/image/map.jpg" alt="Workplace" />
+        <svg
+          id="mapSvg"
+          viewBox="0 0 800 450"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <polygon
+            id="zone-conference"
+            class="zone"
+            data-room="conference"
+            data-capacity="2"
+            points="0,0 300,0 300,150 0,150"
+          ></polygon>
+
+          <polygon
+            id="zone-security"
+            class="zone"
+            data-room="security"
+            data-capacity="3"
+            points="620,0 915,0 915,155 620,155"
+          ></polygon>
+
+          <polygon
+            id="zone-server"
+            class="zone"
+            data-room="server"
+            data-capacity="3"
+            points="440,0 615,0 615,155 440,155"
+          ></polygon>
+
+          <polygon
+            id="zone-reception"
+            class="zone"
+            data-room="reception"
+            data-capacity="2"
+            points="0,155 300,155 300,450 0,450"
+          ></polygon>
+
+          <polygon
+            id="zone-vault"
+            class="zone"
+            data-room="vault"
+            data-capacity="3"
+            points="620,300 793,300 793,450 620,450"
+          ></polygon>
+
+          <polygon
+            id="zone-staff"
+            class="zone"
+            data-room="staff"
+            data-capacity="3"
+            points="440,300 615,300 615,450 440,450"
+          ></polygon>
+        </svg>
+      </div>
+    </main>
+    <div class="modal is-hidden" id="modal">
+      <div class="modal__overlay"></div>
+      <div class="modal__content">
+        <header class="modal__header">
+          <h3 class="modal__title" id="modal-title">Add a member</h3>
+          <button
+            class="modal__close"
+            id="close-modal"
+            data-action="close-modal"
+          >
+            &times;
+          </button>
+        </header>
+        <div class="modal__body" id="modal-body">
+          <form class="form" id="form">
+            <div class="main-info">
+              <div class="form__group">
+                <label class="form__label" for="name">Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  class="input"
+                  placeholder="Enter member name"
+                  required
+                />
+              </div>
+
+              <div class="form__group">
+                <label class="form__label" for="">Role</label>
+                <select name="dropdownName" id="dropdownId">
+                  <option value="receptionist">Receptionist</option>
+                  <option value="it">It Guy</option>
+                  <option value="security">Security</option>
+                  <option value="cleaning">Cleaning</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div class="form__group">
+                <label class="form__label" for="email">E-mail</label>
+                <input
+                  type="email"
+                  id="email"
+                  class="input"
+                  placeholder="example.example@gmail.com"
+                  required
+                />
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="phone">Phone</label>
+                <input
+                  type="phone"
+                  id="phone"
+                  class="input"
+                  placeholder="06xxxxxx"
+                  required
+                />
+              </div>
+
+              <!-- Image URL -->
+              <div class="form__group">
+                <label class="form__label" for="image">Image URL</label>
+                <input
+                  type="url"
+                  id="image"
+                  class="input link"
+                  placeholder="https://example.com/image.jpg"
+                />
+
+                <div class="img-frame">
+                  <img
+                    id="preview"
+                    src=""
+                    alt="Image Preview"
+                    class="is-hidden"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="experiences">
+
+            </div>
+
+            <div class="form__actions">
+              <button type="submit" class="btn btn--primary">Add member</button>
+              <button type="reset" class="btn btn--ghost">Clear</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script src="index.js" type="module"></script>
+  <script src="add.js" type="module"></script>
+</html>
