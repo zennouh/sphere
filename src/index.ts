@@ -145,4 +145,6 @@ function addEventToStackEle(newEl: HTMLDivElement, info: HTMLDivElement) {
   })
 }
 
+
+
 dragAndDrop()

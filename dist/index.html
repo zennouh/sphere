@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./styles/style.css" />
+    <link rel="stylesheet" href="./styles/details.css" />
     <link rel="stylesheet" href="./styles/modal.css" />
     <title>WorkSphere</title>
   </head>
@@ -11,7 +12,7 @@
     <aside class="side">
       <p class="title-side">Staff Members (Unassigned)</p>
       <div class="member-list" id="member-list">
-        <div class="member" draggable="true" data-type="it" id="1">
+        <!-- <div class="member" draggable="true" data-type="it" id="1">
           <div class="info">
             <img src="assets/avatars/favatar.webp" alt="avatar" />
             <div class="person-info">
@@ -30,7 +31,7 @@
             </div>
           </div>
           <div class="edit-btn">Edit</div>
-        </div>
+        </div> -->
       </div>
       <button class="btn btn-add-member" id="add-member">Add Memberrr</button>
     </aside>
@@ -178,6 +179,36 @@
               <!-- <button type="reset" class="btn btn--ghost">Clear</button> -->
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- detail -->
+
+    <div class="modal is-hidden" id="detail-modal">
+      <div class="modal__overlay"></div>
+
+      <div class="modal__content">
+        <header class="modal__header">
+          <h3 class="modal__title">Member Details</h3>
+          <button class="modal__close" id="detail-close-btn">&times;</button>
+        </header>
+
+        <div class="modal__body" id="detail-modal-body">
+          <div class="detail-card">
+            <img id="detail-img" src="" alt="Avatar" class="detail-avatar" />
+
+            <h2 id="detail-name"></h2>
+            <p class="detail-role" id="detail-role"></p>
+
+            <p><strong>Email:</strong> <span id="detail-email"></span></p>
+            <p><strong>Phone:</strong> <span id="detail-phone"></span></p>
+
+            <hr />
+
+            <h3>Experience</h3>
+            <div id="detail-experience-list"></div>
+          </div>
         </div>
       </div>
     </div>
