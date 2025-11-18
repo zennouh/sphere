@@ -28,12 +28,16 @@ function onDrop(e: DragEvent) {
   const memberImage = dataTransfer?.getData('image') || 'img'
   const id = dataTransfer?.getData('id') || ''
 
+  console.log(memberType, "member type ===");
+  
+
   const member = document.getElementById(id)
 
   const zone = document.elementFromPoint(
     e.clientX,
     e.clientY
   ) as HTMLElement | null
+
   if (!zone || zone.tagName !== 'polygon') {
     alert('Please drag to valid room')
     return

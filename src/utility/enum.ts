@@ -3,11 +3,12 @@ export enum roleEnum {
   it = 'it',
   security = 'security',
   cleaning = 'cleaning',
+  manager = "manager",
   other = 'other',
 }
 
 export enum roomEnum {
-  conference = 'conférence',
+  conference = 'conference',
   security = 'security',
   server = 'server',
   reception = 'reception',
@@ -16,10 +17,10 @@ export enum roomEnum {
 }
 
 export const RoomAccess: Record<roomEnum, roleEnum[]> = {
-  [roomEnum.conference]: [roleEnum.it, roleEnum.cleaning],
-  [roomEnum.security]: [roleEnum.other, roleEnum.security],
-  [roomEnum.server]: [roleEnum.it],
-  [roomEnum.reception]: [roleEnum.it],
-  [roomEnum.staff]: [roleEnum.it],
-  [roomEnum.vault]: [roleEnum.it],
+  [roomEnum.conference]: [roleEnum.it, roleEnum.cleaning, roleEnum.manager],
+  [roomEnum.security]: [roleEnum.security, roleEnum.manager, roleEnum.cleaning],
+  [roomEnum.server]: [roleEnum.it, roleEnum.manager],
+  [roomEnum.reception]: [roleEnum.receptionist, roleEnum.manager, roleEnum.cleaning],
+  [roomEnum.staff]: [roleEnum.it, roleEnum.security, roleEnum.manager, roleEnum.cleaning],
+  [roomEnum.vault]: [roleEnum.manager],
 }

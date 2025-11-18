@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="./styles/style.css" />
+    <link rel="stylesheet" href="./styles/modal.css" />
     <title>WorkSphere</title>
   </head>
   <body>
     <aside class="side">
       <p class="title-side">Staff Members (Unassigned)</p>
-      <div class="member-list">
+      <div class="member-list" id="member-list">
         <div class="member" draggable="true" data-type="it" id="1">
           <div class="info">
             <img src="assets/avatars/favatar.webp" alt="avatar" />
@@ -31,7 +32,7 @@
           <div class="edit-btn">Edit</div>
         </div>
       </div>
-      <div class="btn btn-ajoute" id="add-member">Add new worker</div>
+      <button class="btn btn-add-member" id="add-member">Add Memberrr</button>
     </aside>
     <main id="main">
       <div class="canvas" id="canvas">
@@ -114,13 +115,12 @@
                   id="name"
                   class="input"
                   placeholder="Enter member name"
-                  required
                 />
               </div>
 
               <div class="form__group">
                 <label class="form__label" for="">Role</label>
-                <select name="dropdownName" id="dropdownId">
+                <select name="dropdownName" id="role">
                   <option value="receptionist">Receptionist</option>
                   <option value="it">It Guy</option>
                   <option value="security">Security</option>
@@ -136,7 +136,6 @@
                   id="email"
                   class="input"
                   placeholder="example.example@gmail.com"
-                  required
                 />
               </div>
               <div class="form__group">
@@ -146,7 +145,6 @@
                   id="phone"
                   class="input"
                   placeholder="06xxxxxx"
-                  required
                 />
               </div>
 
@@ -163,21 +161,21 @@
                 <div class="img-frame">
                   <img
                     id="preview"
-                    src=""
+                    src="./assets/avatars/favatar.webp"
                     alt="Image Preview"
-                    class="is-hidden"
                   />
                 </div>
               </div>
             </div>
-
             <div class="experiences">
-
+              <div class="btn btn-add-exp">Add Experience</div>
             </div>
 
             <div class="form__actions">
-              <button type="submit" class="btn btn--primary">Add member</button>
-              <button type="reset" class="btn btn--ghost">Clear</button>
+              <button type="submit" class="btn btn-add-tolist">
+                Add member
+              </button>
+              <!-- <button type="reset" class="btn btn--ghost">Clear</button> -->
             </div>
           </form>
         </div>
