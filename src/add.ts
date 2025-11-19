@@ -1,4 +1,4 @@
-import { IExperience, IMember, IAMember, inputFields } from './utility/member.js';
+import { IExperience, IMember, IAMember, inputFields } from './utility/mytypes.js';
 import { checkRoomeAndRole, stringValidate, toRoleEnumValue, toRoomEnumValue } from "./utility/helpers.js";
 
 
@@ -8,8 +8,8 @@ const assignedMemberKey = "assignedMemberKey"
 let memberId = 0;
 let experienceId = 0;
 
-let unassignedMember: IMember[] = [];
-let assignedMember: IAMember[] = [];
+let unassignedMembers: IMember[] = [];
+let assignedMembers: IAMember[] = [];
 
 const modal = document.getElementById('modal')!;
 const addBtn = document.getElementById('add-member')!;
@@ -17,18 +17,17 @@ const form = document.getElementById('form') as HTMLFormElement;
 const imgPrev = document.getElementById("preview") as HTMLImageElement;
 
 
-function saveInlocalStorage(key: string = unassignedMemberKey, arr = unassignedMember) {
+function saveInlocalStorage(key: string = unassignedMemberKey, arr = unassignedMembers) {
   localStorage.setItem(key, JSON.stringify(arr))
 }
 
 function getFromLocalStrorage(key: string = unassignedMemberKey) {
-  unassignedMember = JSON.parse(localStorage.getItem(key) || "[]") || [];
+  unassignedMembers = JSON.parse(localStorage.getItem(key) || "[]") || [];
 
   const l = document.getElementById("member-list");
-  l!.innerHTML = `<p class='no-members ${unassignedMember.length == 0 ? "" : "is-hidden"}'>No member here</p>`;
+  l!.innerHTML = `<p class='no-members ${unassignedMembers.length == 0 ? "" : "is-hidden"}'>No member here</p>`;
 
-
-  unassignedMember.forEach((e) => renderSideBar(e))
+  unassignedMembers.forEach((e) => renderSideBar(e))
 }
 
 function previewImage() {
@@ -60,8 +59,7 @@ function closeModal() {
 }
 
 function removeExpDom() {
-  document.querySelectorAll(".experiences .experience")!.forEach((e) => e.outerHTML = "");
-
+  document.querySelectorAll(".experiences .experience").forEach((e) => (e as HTMLElement).outerHTML = "");
 }
 
 function extractExper(): IExperience[] | null {
@@ -77,7 +75,7 @@ function extractExper(): IExperience[] | null {
     const role = e.querySelector(`#role-${id}`) as HTMLInputElement;
     const from = ((e.querySelector(`#startDate-${id}`) as HTMLInputElement));
     const endVal = (e.querySelector(`#endDate-${id}`) as HTMLInputElement);
-    const to = endVal ? new Date(endVal.value) : null;
+    const to = endVal && endVal.value ? new Date(endVal.value) : null;
 
     const inputs = { company, role, from: from, to: endVal };
 
@@ -172,7 +170,7 @@ function initForm() {
 
 
       document.getElementById("member-list p")?.classList.add("is-hidden")
-      unassignedMember.push(member);
+      unassignedMembers.push(member);
       saveInlocalStorage();
       renderSideBar(member);
       closeModal();
@@ -194,7 +192,7 @@ function renderSideBar(member: IMember) {
       <img src="${member.image}" alt="avatar" />
       <div class="person-info">
         <div class="name">${member.name}</div>
-        <div class="post">${member.role.toUpperCase()}</div>
+        <div class="post">${(member.role as unknown as string).toUpperCase()}</div>
         <div class= "member-btns">
           <div class="edit-btn">Edit</div>
           <div class="detail-btn">Details</div>
@@ -213,10 +211,12 @@ function renderSideBar(member: IMember) {
   });
   div.querySelector(".delete-btn")!.addEventListener("click", () => {
     div.remove()
-    const indexOf = unassignedMember.indexOf(member);
-    unassignedMember.splice(indexOf, 1)
+    const indexOf = unassignedMembers.indexOf(member);
+    if (indexOf > -1) {
+      unassignedMembers.splice(indexOf, 1)
+    }
     saveInlocalStorage()
-    if (unassignedMember.length == 0) {
+    if (unassignedMembers.length == 0) {
       document.querySelector("#member-list p")?.classList.remove("is-hidden")
     }
   });
@@ -232,26 +232,6 @@ function renderSideBar(member: IMember) {
     dataTransfer?.setData('phone', member.phone!)
     dataTransfer?.setData('expers', JSON.stringify(member.experience))
     dataTransfer?.setData('id', `${member.id}`)
-
-    /// hint ghost while drag
-    const ghost = document.createElement('div')
-    const imageDiv = document.createElement('img')
-    imageDiv.src = image
-    imageDiv.alt = member.name || 'unkown'
-    imageDiv.className = 'image'
-
-    const xBtn = document.createElement('div')
-    xBtn.classList.add('close-btn')
-    xBtn.textContent = "x"
-
-    ghost.appendChild(imageDiv)
-    ghost.appendChild(xBtn)
-
-    // const imgFrame = new Image();
-    // imgFrame.src = image
-    // imgFrame.className = 'image'
-
-    dataTransfer?.setDragImage(ghost, 10, 10);
   })
   container.appendChild(div);
 }
@@ -292,7 +272,7 @@ function validateExperHtmlInputs(inputs: { [k: string]: HTMLInputElement }) {
     ok = false;
   }
 
-  if (new Date(inputs.from.value) > new Date(inputs.to.value)) {
+  if (inputs.to && inputs.to.value && new Date(inputs.from.value) > new Date(inputs.to.value)) {
     addErrorMessage(inputs.to, "Please end should be great than start date", "endDate");
     ok = false;
   }
@@ -319,7 +299,6 @@ function removeErrorMsg() {
 }
 
 
-////////////////////////////////////////////////////////
 
 function openDetailModal(member: IMember) {
   const modal = document.getElementById("detail-modal")!;
@@ -327,19 +306,16 @@ function openDetailModal(member: IMember) {
 
 
 
-
-  // Fill the modal fields
   (document.getElementById("detail-img") as HTMLImageElement).src = member.image;
   (document.getElementById("detail-name") as HTMLElement).textContent = member.name;
-  (document.getElementById("detail-role") as HTMLElement).textContent = member.role.toUpperCase();
+  (document.getElementById("detail-role") as HTMLElement).textContent = (member.role as unknown as string).toUpperCase();
   (document.getElementById("detail-email") as HTMLElement).textContent = member.email;
   (document.getElementById("detail-phone") as HTMLElement).textContent = member.phone;
 
-  // Experience rendering
   const expList = document.getElementById("detail-experience-list")!;
   expList.innerHTML = "";
 
-  if (member.experience.length === 0) {
+  if (!member.experience || member.experience.length === 0) {
     expList.innerHTML = "<p>No experience recorded.</p>";
   } else {
     member.experience.forEach(exp => {
@@ -424,16 +400,12 @@ function onDrop(e: DragEvent) {
 }
 
 function dragAndDrop() {
-  // const member = document.getElementsByClassName('member')
   const canvas = document.getElementById('canvas')
 
-  // onDragStart(member)
+  assignedMembers.push(...JSON.parse(localStorage.getItem(assignedMemberKey) || "[]"));
 
 
-  assignedMember.push(...JSON.parse(localStorage.getItem(assignedMemberKey) || "[]"));
-
-
-  assignedMember.forEach((m: IAMember) => {
+  assignedMembers.forEach((m: IAMember) => {
     const ele = initStackElements(m);
     canvas?.appendChild(ele)
   })
@@ -456,8 +428,13 @@ function createStackElement(
   memberEmail: string,
   memberPhone: string,
   memberExpers: IExperience[]
-  // member: IMember
 ) {
+
+  // console.log("------------------------------------");
+
+  // const newEle = document.createElement('div')
+  // return newEle;
+ 
 
   const mem: IMember = {
     id: +id,
@@ -469,18 +446,23 @@ function createStackElement(
     experience: memberExpers,
   };
 
-  const oldAssign = assignedMember.find((a) => a.id === +id)!;
-  assignedMember.splice(assignedMember.indexOf(oldAssign), 1);
+  const oldAssign = assignedMembers.find((a) => a.id === +id);
+  if (oldAssign) {
+    const idx = assignedMembers.indexOf(oldAssign!);
+    if (idx > -1) assignedMembers.splice(idx, 1);
+  }
 
   let assignMem = {
     left: 0, top: 0, ...mem
   };
-  assignedMember.push(assignMem);
-  const indexOf = assignedMember.indexOf(assignMem)
-  unassignedMember.splice(indexOf, 1)
+  assignedMembers.push(assignMem);
 
+  const unIndex = unassignedMembers.findIndex((u) => u.id == assignMem.id);
+  if (unIndex > -1) {
+    unassignedMembers.splice(unIndex, 1)
+  }
 
-  if (unassignedMember.length == 0) {
+  if (unassignedMembers.length == 0) {
     document.querySelector("#member-list p")?.classList.remove("is-hidden")
   }
 
@@ -493,7 +475,7 @@ function createStackElement(
   assignMem.top = yPercent;
   assignMem.left = xPercent;
 
-  saveInlocalStorage(assignedMemberKey, assignedMember)
+  saveInlocalStorage(assignedMemberKey, assignedMembers)
   saveInlocalStorage()
 
 
@@ -506,14 +488,19 @@ function createStackElement(
   xBtn.classList.add('close-btn')
   xBtn.textContent = "x"
   xBtn.onclick = () => {
+
     newEl.remove()
-    unassignedMember.push(mem);
-    const indexOf = unassignedMember.indexOf(mem)
-    assignedMember.splice(indexOf, 1)
+    unassignedMembers.push(mem);
+    const unIdx = unassignedMembers.findIndex((m) => m.id === mem.id)
+    const assignedIdx = assignedMembers.findIndex((m) => m.id === mem.id)
+    if (assignedIdx > -1) assignedMembers.splice(assignedIdx, 1)
+
     renderSideBar(mem)
-    saveInlocalStorage(assignedMemberKey, assignedMember)
-    localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMember))
+    saveInlocalStorage(assignedMemberKey, assignedMembers)
+    localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers))
     document.querySelector("#member-list p")?.classList.add("is-hidden")
+
+
   }
 
 
@@ -535,7 +522,7 @@ function createStackElement(
 
   newEl.addEventListener('dragstart', (e: DragEvent) => {
     const data = e.dataTransfer
-    data!.setData('role', mem.role)
+    data!.setData('role', (mem.role as unknown as string))
     data!.setData('name', mem.name)
     data!.setData('image', mem.image)
     data?.setData('id', mem.id.toString())
@@ -546,23 +533,33 @@ function createStackElement(
 }
 
 function initStackElements(member: IAMember) {
+  //   console.log("++++++++++++++++++++++++++++++++++++++++++");
+
+  // const newEle = document.createElement('div')
+  // return newEle;
+
   const newEl = document.createElement('div')
 
   newEl.id = member.id.toString()
 
   const image = document.createElement('img')
-  // const info = document.createElement('div')
   const xBtn = document.createElement('div')
   xBtn.classList.add('close-btn')
   xBtn.textContent = "x"
   xBtn.onclick = () => {
+
     newEl.remove()
-    unassignedMember.push(member);
-    const indexOf = unassignedMember.indexOf(member)
-    assignedMember.splice(indexOf, 1)
+
+    unassignedMembers.push(member);
+
+    const assignedIdx = assignedMembers.findIndex((d) => d.id == member.id)
+    if (assignedIdx > -1) assignedMembers.splice(assignedIdx, 1)
+
     renderSideBar(member)
-    saveInlocalStorage(assignedMemberKey, assignedMember)
-    localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMember))
+
+    saveInlocalStorage(assignedMemberKey, assignedMembers)
+
+    localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers))
 
     document.querySelector("#member-list p")?.classList.add("is-hidden")
   }
@@ -585,7 +582,7 @@ function initStackElements(member: IAMember) {
 
   newEl.addEventListener('dragstart', (e: DragEvent) => {
     const data = e.dataTransfer
-    data!.setData('role', member.role)
+    data!.setData('role', (member.role as unknown as string))
     data!.setData('name', member.name)
     data!.setData('image', member.image)
     data?.setData('id', member.id.toString())
@@ -598,18 +595,16 @@ function openDetailModalCan(member: IMember) {
   const modal = document.getElementById("detail-modal")!;
   modal.classList.remove("is-hidden");
 
-  // Fill the modal fields
   (document.getElementById("detail-img") as HTMLImageElement).src = member.image;
   (document.getElementById("detail-name") as HTMLElement).textContent = member.name;
-  (document.getElementById("detail-role") as HTMLElement).textContent = member.role.toUpperCase();
+  (document.getElementById("detail-role") as HTMLElement).textContent = (member.role as unknown as string).toUpperCase();
   (document.getElementById("detail-email") as HTMLElement).textContent = member.email;
   (document.getElementById("detail-phone") as HTMLElement).textContent = member.phone;
 
-  // Experience rendering
   const expList = document.getElementById("detail-experience-list")!;
   expList.innerHTML = "";
 
-  if (member.experience.length === 0) {
+  if (!member.experience || member.experience.length === 0) {
     expList.innerHTML = "<p>No experience recorded.</p>";
   } else {
     member.experience.forEach(exp => {
@@ -760,7 +755,6 @@ function createModal(member: IMember) {
   imgInput.className = "input link";
   imgInput.classList.add("image");
   imgInput.value = member.image
-  // imgInput.placeholder = "https://example.com/image.jpg";
 
   const imgFrame = document.createElement("div");
   imgFrame.className = "img-frame";
@@ -779,10 +773,9 @@ function createModal(member: IMember) {
     preview.src = imgInput.value || "./assets/avatars/favatar.webp";
   });
 
-  // expers
-  if (member.experience.length !== 0) {
+  if (member.experience && member.experience.length !== 0) {
     for (const ex of member.experience) {
-      mainInfo.appendChild(createExperienceItem(ex.id, ex));
+      mainInfo.appendChild(createExperienceItem(String(ex.id), ex));
     }
   }
 
@@ -838,14 +831,11 @@ function createModal(member: IMember) {
 
     saveInlocalStorage();
 
-    // Close modal
     modal.classList.add("is-hidden");
     renderAllOneTime()
 
 
   })
-
-
 
   form.appendChild(actions);
 
@@ -867,7 +857,7 @@ function createModal(member: IMember) {
 function renderAllOneTime() {
   const container = document.getElementById("member-list")!;
   container.innerHTML = ""
-  unassignedMember.forEach((un) => {
+  unassignedMembers.forEach((un) => {
     renderSideBar(un);
   })
 }
@@ -876,15 +866,13 @@ function createExperienceItem(index: string, experience: IExperience) {
   const wrapper = document.createElement("div");
   wrapper.className = "experience";
   wrapper.id = index;
+  wrapper.setAttribute("data-exp-id", String(index));
 
-  // ---- Header ----
   const head = document.createElement("div");
   head.className = "exp-head";
 
   const title = document.createElement("p");
   title.textContent = "Experience";
-
-
 
   head.appendChild(title);
   wrapper.appendChild(head);
@@ -903,25 +891,15 @@ function createExperienceItem(index: string, experience: IExperience) {
     input.id = `${idBase}-${index}`;
     input.type = type;
 
-
     if (type == "date") {
-
       const myDate = new Date(value);
-
-
       try {
         const ymd = myDate.toISOString().split("T")[0].trim();
-
         input.value = ymd;
       } catch (error) {
 
       }
-
-
-
     } else {
-
-
       input.value = value as string;
     }
 
