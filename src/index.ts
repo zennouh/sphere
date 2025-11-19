@@ -4,32 +4,24 @@ import {
   toRoomEnumValue,
 } from './utility/helpers.js'
 
-function onDragStart(member: HTMLCollectionOf<Element>) {
-  Array.from(member!).forEach((element) => {
-    element!.addEventListener('dragstart', (e) => {
-      const memberName = element.getElementsByClassName('name')[0].textContent
-      const image =
-        (element.getElementsByTagName('img')[0] as HTMLImageElement).src || ''
-      const dataTransfer = (e as DragEvent).dataTransfer
-      dataTransfer?.setData('type', (element! as HTMLElement).dataset.type!)
-      dataTransfer?.setData('name', memberName!)
-      dataTransfer?.setData('image', image!)
-      dataTransfer?.setData('id', element.id!)
-    })
-  })
-}
+import { assignedMember, assignedMemberKey, getFromLocalStrorage, renderSideBar, saveInlocalStorage, unassignedMember } from "./add.js";
+
+import { IAMember, IExperience, IMember } from "./utility/member.js";
 
 function onDrop(e: DragEvent) {
   e.preventDefault()
   const canvas = document.getElementById('canvas')!
   const dataTransfer = (e as DragEvent).dataTransfer
-  const memberType = dataTransfer?.getData('type') || ''
+  const memberType = dataTransfer?.getData('role') || ''
   const memberName = dataTransfer?.getData('name') || 'unkown'
   const memberImage = dataTransfer?.getData('image') || 'img'
+  const memberEmail = dataTransfer?.getData('email') || 'email'
+  const memberPhone = dataTransfer?.getData('phone') || 'phone'
+  const memberExpers = JSON.parse(dataTransfer?.getData("expers") || "[]") as IExperience[]
   const id = dataTransfer?.getData('id') || ''
 
-  console.log(memberType, "member type ===");
-  
+  console.log("Drop role: ", memberType);
+
 
   const member = document.getElementById(id)
 
@@ -60,17 +52,31 @@ function onDrop(e: DragEvent) {
     memberName,
     memberImage,
     memberType,
-    id
+    id,
+    memberEmail,
+    memberPhone,
+    memberExpers,
+    // memberObj!
   )
   member?.remove()
   canvas.appendChild(newEl)
 }
 
 function dragAndDrop() {
-  const member = document.getElementsByClassName('member')
+  // const member = document.getElementsByClassName('member')
   const canvas = document.getElementById('canvas')
 
-  onDragStart(member)
+  // onDragStart(member)
+
+  assignedMember.push(...JSON.parse(localStorage.getItem(assignedMemberKey) || "[]"));
+
+
+  assignedMember.forEach((m: IAMember) => {
+    const ele = initStackElements(m);
+    console.log(assignedMember);
+    canvas?.appendChild(ele)
+  })
+
 
   canvas?.addEventListener('dragover', (e) => {
     e.preventDefault()
@@ -85,66 +91,183 @@ function createStackElement(
   memberName: string,
   memberImage: string,
   memberType: string,
-  id: string
+  id: string,
+  memberEmail: string,
+  memberPhone: string,
+  memberExpers: IExperience[]
+  // member: IMember
 ) {
+
+  const mem: IMember = {
+    id: +id,
+    image: memberImage,
+    name: memberName,
+    email: memberEmail,
+    phone: memberPhone,
+    role: toRoleEnumValue(memberType)!,
+    experience: memberExpers,
+  };
+  let assignMem = {
+    left: 0, top: 0, ...mem
+  };
+  assignedMember.push(assignMem);
+  const indexOf = assignedMember.indexOf(assignMem)
+  unassignedMember.splice(indexOf, 1)
+
+
+  if (unassignedMember.length == 0) {
+    document.querySelector("#member-list p")?.classList.remove("is-hidden")
+  }
+
   const localX = e.clientX - rect.left
   const localY = e.clientY - rect.top
 
   const yPercent = (localY * 100) / rect.height
   const xPercent = (localX * 100) / rect.width
 
+  assignMem.top = yPercent;
+  assignMem.left = xPercent;
+
+  saveInlocalStorage(assignedMemberKey, assignedMember)
+  saveInlocalStorage()
+
+
   const newEl = document.createElement('div')
 
   newEl.id = id
 
   const image = document.createElement('img')
-  const info = document.createElement('div')
+  // const info = document.createElement('div')
   const xBtn = document.createElement('div')
   xBtn.classList.add('close-btn')
-  xBtn.textContent
-  info.innerHTML = `
-    <div class='name'>${memberName}</div>
-    <div class= 'type' >${memberType}</div>
-    `
+  xBtn.textContent = "x"
+  xBtn.onclick = () => {
+    newEl.remove()
+    unassignedMember.push(mem);
+    const indexOf = unassignedMember.indexOf(mem)
+    assignedMember.splice(indexOf, 1)
+    renderSideBar(mem)
+    saveInlocalStorage(assignedMemberKey, assignedMember)
+    saveInlocalStorage()
+    document.querySelector("#member-list p")?.classList.add("is-hidden")
+  }
+
 
   image.src = memberImage || ''
   image.alt = memberName || 'unkown'
   image.className = 'image'
   image.classList.add('image-config')
-  // image.classList.add('worker-dot')
-  // image.style.left = xPercent + '%'
-  // image.style.top = yPercent + '%'
-  image.onclick = function () {
-    console.log(memberName)
-  }
-
-  // newEl.classList.add('worker-dot')
   newEl.classList.add('member-zone')
   newEl.style.left = xPercent + '%'
   newEl.style.top = yPercent + '%'
 
-  newEl.appendChild(image)
-  // newEl.appendChild(info)
-  // newEl.appendChild(xBtn)
 
-  addEventToStackEle(newEl, info)
+  newEl.onclick = () => {
+    openDetailModal(mem)
+  }
+  newEl.appendChild(image)
+  newEl.appendChild(xBtn)
+
+  newEl.addEventListener('dragstart', (e: DragEvent) => {
+    const data = e.dataTransfer
+    data!.setData('role', mem.role)
+    console.log("info: ", mem.role);
+
+    data!.setData('name', mem.name)
+    data!.setData('image', mem.image)
+    data?.setData('id', mem.id.toString())
+  })
 
   return newEl
 }
 
-function addEventToStackEle(newEl: HTMLDivElement, info: HTMLDivElement) {
+function initStackElements(member: IAMember) {
+  const newEl = document.createElement('div')
+
+  newEl.id = member.id.toString()
+
+  const image = document.createElement('img')
+  // const info = document.createElement('div')
+  const xBtn = document.createElement('div')
+  xBtn.classList.add('close-btn')
+  xBtn.textContent = "x"
+  xBtn.onclick = () => {
+    newEl.remove()
+    unassignedMember.push(member);
+    const indexOf = unassignedMember.indexOf(member)
+    assignedMember.splice(indexOf, 1)
+    renderSideBar(member)
+    saveInlocalStorage(assignedMemberKey, assignedMember)
+    document.querySelector("#member-list p")?.classList.add("is-hidden")
+  }
+
+
+  image.src = member.image || ''
+  image.alt = member.name || 'unkown'
+  image.className = 'image'
+  image.classList.add('image-config')
+  newEl.classList.add('member-zone')
+  newEl.style.left = member.left + '%'
+  newEl.style.top = member.top + '%'
+
+
+  newEl.onclick = () => {
+    openDetailModal(member)
+  }
+  newEl.appendChild(image)
+  newEl.appendChild(xBtn)
+
   newEl.addEventListener('dragstart', (e: DragEvent) => {
     const data = e.dataTransfer
-    data!.setData('type', info.getElementsByClassName('type')[0].textContent)
-    data!.setData('name', info.getElementsByClassName('name')[0].textContent)
-    data!.setData(
-      'image',
-      (newEl.getElementsByClassName('image')[0] as HTMLImageElement).src
-    )
-    data?.setData('id', newEl.id!)
+    data!.setData('role', member.role)
+    console.log("info: ", member.role);
+
+    data!.setData('name', member.name)
+    data!.setData('image', member.image)
+    data?.setData('id', member.id.toString())
   })
+
+  return newEl
 }
 
+function openDetailModal(member: IMember) {
+  const modal = document.getElementById("detail-modal")!;
+  modal.classList.remove("is-hidden");
 
+
+  console.log(member);
+
+  // Fill the modal fields
+  (document.getElementById("detail-img") as HTMLImageElement).src = member.image;
+  (document.getElementById("detail-name") as HTMLElement).textContent = member.name;
+  (document.getElementById("detail-role") as HTMLElement).textContent = member.role.toUpperCase();
+  (document.getElementById("detail-email") as HTMLElement).textContent = member.email;
+  (document.getElementById("detail-phone") as HTMLElement).textContent = member.phone;
+
+  // Experience rendering
+  const expList = document.getElementById("detail-experience-list")!;
+  expList.innerHTML = "";
+
+  if (member.experience.length === 0) {
+    expList.innerHTML = "<p>No experience recorded.</p>";
+  } else {
+    member.experience.forEach(exp => {
+      const div = document.createElement("div");
+      div.className = "detail-exp";
+
+      div.innerHTML = `
+        <p><strong>Company:</strong> ${exp.company}</p>
+        <p><strong>Role:</strong> ${exp.role}</p>
+        <p><strong>From:</strong> ${new Date(exp.from).toLocaleDateString()}</p>
+        <p><strong>To:</strong> ${exp.to ? new Date(exp.to).toLocaleDateString() : "Present"}</p>
+        <hr />
+      `;
+
+      expList.appendChild(div);
+    });
+  }
+}
+
+// localStorage.clear()
 
 dragAndDrop()

@@ -217,13 +217,23 @@ option {
     cursor: pointer;
 }
 
-.btn-add-exp, .btn-add-member {
-    background-color: var(--accent-green);  
+.btn-add-exp,
+.btn-add-member {
+    background-color: var(--accent-green);
+}
+
+.side .title {
+    width: calc(100% - 30px);
+    display: flex;
+    align-items: center;
+    margin: 15px;
+    justify-content: space-between;
 }
 
 
+
 .btn-add-tolist {
-  background-color: var(--btn-blue);
+    background-color: var(--btn-blue);
 }
 
 

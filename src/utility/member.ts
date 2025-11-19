@@ -17,3 +17,8 @@ export interface IMember {
   phone: string
   experience: IExperience[]
 }
+
+export interface IAMember extends IMember {
+  left: number;
+  top: number;
+}

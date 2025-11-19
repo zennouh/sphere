@@ -1,14 +1,15 @@
-import { IExperience, IMember } from './utility/member.js';
+import { IExperience, IMember, IAMember } from './utility/member.js';
 import { toRoleEnumValue } from "./utility/helpers.js";
 
 
 const unassignedMemberKey = "unassignedMemberKey"
+export const assignedMemberKey = "assignedMemberKey"
 
 let memberId = 0;
 let experienceId = 0;
 
-let unassignedMember: IMember[] = [];
-let assignedMember: IMember[] = [];
+export let unassignedMember: IMember[] = [];
+export let assignedMember: IAMember[] = [];
 
 const modal = document.getElementById('modal')!;
 const addBtn = document.getElementById('add-member')!;
@@ -16,13 +17,19 @@ const form = document.getElementById('form') as HTMLFormElement;
 const imgPrev = document.getElementById("preview") as HTMLImageElement;
 
 
-function saveInlocalStorage() {
-  localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMember))
+export function saveInlocalStorage(key: string = unassignedMemberKey, arr = unassignedMember) {
+  localStorage.setItem(key, JSON.stringify(arr))
+   console.log("from index.ts:", unassignedMember);
 }
 
 
-function getFromLocalStrorage() {
-  unassignedMember = JSON.parse(localStorage.getItem(unassignedMemberKey) || "[]") || [];
+export function getFromLocalStrorage(key: string = unassignedMemberKey) {
+  unassignedMember = JSON.parse(localStorage.getItem(key) || "[]") || [];
+
+  const l = document.getElementById("member-list");
+  l!.innerHTML = `<p class='no-members ${unassignedMember.length == 0 ? "" : "is-hidden"}'>No member here</p>`;
+  console.log("from add.ts:", unassignedMember);
+  
   unassignedMember.forEach((e) => renderSideBar(e))
 }
 
@@ -163,8 +170,8 @@ function initForm() {
         experience: experiences
       };
 
-      console.log(member);
 
+      document.getElementById("member-list p")?.classList.add("is-hidden")
       unassignedMember.push(member);
       saveInlocalStorage();
       renderSideBar(member);
@@ -173,7 +180,7 @@ function initForm() {
   });
 }
 
-function renderSideBar(member: IMember) {
+export function renderSideBar(member: IMember) {
   const container = document.getElementById("member-list")!;
   const div = document.createElement("div");
 
@@ -188,13 +195,41 @@ function renderSideBar(member: IMember) {
       <div class="person-info">
         <div class="name">${member.name}</div>
         <div class="post">${member.role.toUpperCase()}</div>
+        <div class= "member-btns">
+          <div class="edit-btn">Edit</div>
+          <div class="detail-btn">Details</div>
+          <div class="delete-btn">Delete</div>
+        </div>
       </div>
     </div>
-    <div class="edit-btn">Edit</div>
   `;
-  div.querySelector(".edit-btn")!.addEventListener("click", () => {
+  document.querySelector("#member-list p")?.classList.add("is-hidden")
+  div.querySelector(".detail-btn")!.addEventListener("click", () => {
     openDetailModal(member);
   });
+  div.querySelector(".delete-btn")!.addEventListener("click", () => {
+    div.remove()
+    const indexOf = unassignedMember.indexOf(member);
+    unassignedMember.splice(indexOf, 1)
+    saveInlocalStorage()
+    if (unassignedMember.length == 0) {
+      document.querySelector("#member-list p")?.classList.remove("is-hidden")
+    }
+  });
+  div!.addEventListener('dragstart', (e) => {
+    const memberName = member.name
+    const image = member.image
+    const dataTransfer = (e as DragEvent).dataTransfer
+    dataTransfer?.setData('type', member.role)
+
+    dataTransfer?.setData('name', memberName!)
+    dataTransfer?.setData('image', image!)
+    dataTransfer?.setData('role', member.role!)
+    dataTransfer?.setData('email', member.email!)
+    dataTransfer?.setData('phone', member.phone!)
+    dataTransfer?.setData('expers', JSON.stringify(member.experience))
+    dataTransfer?.setData('id', `${member.id}`)
+  })
   container.appendChild(div);
 }
 
@@ -249,13 +284,13 @@ initForm();
 
 ////////////////////////////////////////////////////////
 
-function openDetailModal(member: IMember) {
+export function openDetailModal(member: IMember) {
   const modal = document.getElementById("detail-modal")!;
   modal.classList.remove("is-hidden");
 
- 
+
   console.log(member);
-  
+
   // Fill the modal fields
   (document.getElementById("detail-img") as HTMLImageElement).src = member.image;
   (document.getElementById("detail-name") as HTMLElement).textContent = member.name;
