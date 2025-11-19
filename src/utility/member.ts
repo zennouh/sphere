@@ -1,5 +1,9 @@
 import { roleEnum } from './enum'
 
+
+
+export type inputFields = "name" | "email" | "phone" | "image"
+
 export interface IExperience {
   id: string
   company: string

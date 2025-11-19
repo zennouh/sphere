@@ -1,15 +1,15 @@
-import { IExperience, IMember, IAMember } from './utility/member.js';
-import { toRoleEnumValue } from "./utility/helpers.js";
+import { IExperience, IMember, IAMember, inputFields } from './utility/member.js';
+import { checkRoomeAndRole, stringValidate, toRoleEnumValue, toRoomEnumValue } from "./utility/helpers.js";
 
 
 const unassignedMemberKey = "unassignedMemberKey"
-export const assignedMemberKey = "assignedMemberKey"
+const assignedMemberKey = "assignedMemberKey"
 
 let memberId = 0;
 let experienceId = 0;
 
-export let unassignedMember: IMember[] = [];
-export let assignedMember: IAMember[] = [];
+let unassignedMember: IMember[] = [];
+let assignedMember: IAMember[] = [];
 
 const modal = document.getElementById('modal')!;
 const addBtn = document.getElementById('add-member')!;
@@ -17,19 +17,17 @@ const form = document.getElementById('form') as HTMLFormElement;
 const imgPrev = document.getElementById("preview") as HTMLImageElement;
 
 
-export function saveInlocalStorage(key: string = unassignedMemberKey, arr = unassignedMember) {
+function saveInlocalStorage(key: string = unassignedMemberKey, arr = unassignedMember) {
   localStorage.setItem(key, JSON.stringify(arr))
-   console.log("from index.ts:", unassignedMember);
 }
 
-
-export function getFromLocalStrorage(key: string = unassignedMemberKey) {
+function getFromLocalStrorage(key: string = unassignedMemberKey) {
   unassignedMember = JSON.parse(localStorage.getItem(key) || "[]") || [];
 
   const l = document.getElementById("member-list");
   l!.innerHTML = `<p class='no-members ${unassignedMember.length == 0 ? "" : "is-hidden"}'>No member here</p>`;
-  console.log("from add.ts:", unassignedMember);
-  
+
+
   unassignedMember.forEach((e) => renderSideBar(e))
 }
 
@@ -77,14 +75,14 @@ function extractExper(): IExperience[] | null {
 
     const company = e.querySelector(`#company-${id}`) as HTMLInputElement;
     const role = e.querySelector(`#role-${id}`) as HTMLInputElement;
-    const from = new Date((e.querySelector(`#startDate-${id}`) as HTMLInputElement).value);
-    const endVal = (e.querySelector(`#endDate-${id}`) as HTMLInputElement).value;
-    const to = endVal ? new Date(endVal) : null;
+    const from = ((e.querySelector(`#startDate-${id}`) as HTMLInputElement));
+    const endVal = (e.querySelector(`#endDate-${id}`) as HTMLInputElement);
+    const to = endVal ? new Date(endVal.value) : null;
 
-    const inputs = { company, role, from: company, to: company };
+    const inputs = { company, role, from: from, to: endVal };
 
     if (validateExperHtmlInputs(inputs)) {
-      experiences.push({ id, company: company.value, role: role.value, from, to });
+      experiences.push({ id, company: company.value, role: role.value, from: new Date(from.value), to });
     }
   });
 
@@ -159,6 +157,8 @@ function initForm() {
     const valid = validateHtmlInputs(fields);
     const experiences = extractExper();
 
+
+
     if (valid && experiences !== null) {
       const member: IMember = {
         id: memberId++,
@@ -180,7 +180,7 @@ function initForm() {
   });
 }
 
-export function renderSideBar(member: IMember) {
+function renderSideBar(member: IMember) {
   const container = document.getElementById("member-list")!;
   const div = document.createElement("div");
 
@@ -207,6 +207,10 @@ export function renderSideBar(member: IMember) {
   div.querySelector(".detail-btn")!.addEventListener("click", () => {
     openDetailModal(member);
   });
+  div.querySelector(".edit-btn")!.addEventListener("click", () => {
+    const modale = createModal(member);
+    modale.classList.remove("is-hidden");
+  });
   div.querySelector(".delete-btn")!.addEventListener("click", () => {
     div.remove()
     const indexOf = unassignedMember.indexOf(member);
@@ -221,7 +225,6 @@ export function renderSideBar(member: IMember) {
     const image = member.image
     const dataTransfer = (e as DragEvent).dataTransfer
     dataTransfer?.setData('type', member.role)
-
     dataTransfer?.setData('name', memberName!)
     dataTransfer?.setData('image', image!)
     dataTransfer?.setData('role', member.role!)
@@ -229,6 +232,26 @@ export function renderSideBar(member: IMember) {
     dataTransfer?.setData('phone', member.phone!)
     dataTransfer?.setData('expers', JSON.stringify(member.experience))
     dataTransfer?.setData('id', `${member.id}`)
+
+    /// hint ghost while drag
+    const ghost = document.createElement('div')
+    const imageDiv = document.createElement('img')
+    imageDiv.src = image
+    imageDiv.alt = member.name || 'unkown'
+    imageDiv.className = 'image'
+
+    const xBtn = document.createElement('div')
+    xBtn.classList.add('close-btn')
+    xBtn.textContent = "x"
+
+    ghost.appendChild(imageDiv)
+    ghost.appendChild(xBtn)
+
+    // const imgFrame = new Image();
+    // imgFrame.src = image
+    // imgFrame.className = 'image'
+
+    dataTransfer?.setDragImage(ghost, 10, 10);
   })
   container.appendChild(div);
 }
@@ -237,7 +260,9 @@ function validateHtmlInputs(inputs: { [k: string]: HTMLInputElement }) {
   let ok = true;
 
   Object.entries(inputs).forEach(([key, input]) => {
-    if (input.value.trim() === "") {
+    console.log("[key, value]: ", [key, input]);
+
+    if (!stringValidate(input.value.trim(), key as inputFields)) {
       addErrorMessage(input, `Please enter a valid ${key}`, key);
       ok = false;
     }
@@ -249,12 +274,26 @@ function validateHtmlInputs(inputs: { [k: string]: HTMLInputElement }) {
 function validateExperHtmlInputs(inputs: { [k: string]: HTMLInputElement }) {
   let ok = true;
 
-  if (!inputs.company.value.trim()) {
+  if (!stringValidate(inputs.company.value, "name")) {
     addErrorMessage(inputs.company, "Please enter a valid company", "company");
     ok = false;
   }
-  if (!inputs.role.value.trim()) {
+  if (!stringValidate(inputs.role.value.trim(), "name")) {
     addErrorMessage(inputs.role, "Please enter a valid role", "role");
+    ok = false;
+  }
+
+
+  if (!inputs.from.value.trim()) {
+    addErrorMessage(inputs.from, "Please enter a valid start date", "startDate");
+    ok = false;
+  } else if (new Date(inputs.from.value) > new Date(Date.now())) {
+    addErrorMessage(inputs.from, "Please enter a valid range date", "startDate");
+    ok = false;
+  }
+
+  if (new Date(inputs.from.value) > new Date(inputs.to.value)) {
+    addErrorMessage(inputs.to, "Please end should be great than start date", "endDate");
     ok = false;
   }
 
@@ -278,18 +317,16 @@ function removeSpecificError(parent: HTMLElement) {
 function removeErrorMsg() {
   document.querySelectorAll(".error-msg").forEach((e) => e.remove());
 }
-getFromLocalStrorage()
-initModal();
-initForm();
+
 
 ////////////////////////////////////////////////////////
 
-export function openDetailModal(member: IMember) {
+function openDetailModal(member: IMember) {
   const modal = document.getElementById("detail-modal")!;
   modal.classList.remove("is-hidden");
 
 
-  console.log(member);
+
 
   // Fill the modal fields
   (document.getElementById("detail-img") as HTMLImageElement).src = member.image;
@@ -334,5 +371,577 @@ function initDetailModal() {
     modal.classList.add("is-hidden");
   });
 }
+
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  const canvas = document.getElementById('canvas')!
+  const dataTransfer = (e as DragEvent).dataTransfer
+  const memberType = dataTransfer?.getData('role') || ''
+  const memberName = dataTransfer?.getData('name') || 'unkown'
+  const memberImage = dataTransfer?.getData('image') || 'img'
+  const memberEmail = dataTransfer?.getData('email') || 'email'
+  const memberPhone = dataTransfer?.getData('phone') || 'phone'
+  const memberExpers = JSON.parse(dataTransfer?.getData("expers") || "[]") as IExperience[]
+  const id = dataTransfer?.getData('id') || ''
+
+  const member = document.getElementById(id)
+
+  const zone = document.elementFromPoint(
+    e.clientX,
+    e.clientY
+  ) as HTMLElement | null
+
+  if (!zone || zone.tagName !== 'polygon') {
+    alert('Please drag to valid room')
+    return
+  }
+
+  const isAllowed = checkRoomeAndRole(
+    toRoleEnumValue(memberType)!,
+    toRoomEnumValue(zone.dataset.room!)
+  )
+
+  if (!isAllowed) {
+    alert('You drag wrong member to zone')
+    return
+  }
+
+  const rect = canvas.getBoundingClientRect()
+  const newEl = createStackElement(
+    e,
+    rect,
+    memberName,
+    memberImage,
+    memberType,
+    id,
+    memberEmail,
+    memberPhone,
+    memberExpers
+  )
+
+  member?.remove()
+  canvas.appendChild(newEl)
+}
+
+function dragAndDrop() {
+  // const member = document.getElementsByClassName('member')
+  const canvas = document.getElementById('canvas')
+
+  // onDragStart(member)
+
+
+  assignedMember.push(...JSON.parse(localStorage.getItem(assignedMemberKey) || "[]"));
+
+
+  assignedMember.forEach((m: IAMember) => {
+    const ele = initStackElements(m);
+    canvas?.appendChild(ele)
+  })
+
+
+  canvas?.addEventListener('dragover', (e) => {
+    e.preventDefault()
+  })
+
+  canvas?.addEventListener('drop', onDrop)
+}
+
+function createStackElement(
+  e: DragEvent,
+  rect: DOMRect,
+  memberName: string,
+  memberImage: string,
+  memberType: string,
+  id: string,
+  memberEmail: string,
+  memberPhone: string,
+  memberExpers: IExperience[]
+  // member: IMember
+) {
+
+  const mem: IMember = {
+    id: +id,
+    image: memberImage,
+    name: memberName,
+    email: memberEmail,
+    phone: memberPhone,
+    role: toRoleEnumValue(memberType)!,
+    experience: memberExpers,
+  };
+
+  const oldAssign = assignedMember.find((a) => a.id === +id)!;
+  assignedMember.splice(assignedMember.indexOf(oldAssign), 1);
+
+  let assignMem = {
+    left: 0, top: 0, ...mem
+  };
+  assignedMember.push(assignMem);
+  const indexOf = assignedMember.indexOf(assignMem)
+  unassignedMember.splice(indexOf, 1)
+
+
+  if (unassignedMember.length == 0) {
+    document.querySelector("#member-list p")?.classList.remove("is-hidden")
+  }
+
+  const localX = e.clientX - rect.left
+  const localY = e.clientY - rect.top
+
+  const yPercent = (localY * 100) / rect.height
+  const xPercent = (localX * 100) / rect.width
+
+  assignMem.top = yPercent;
+  assignMem.left = xPercent;
+
+  saveInlocalStorage(assignedMemberKey, assignedMember)
+  saveInlocalStorage()
+
+
+  const newEl = document.createElement('div')
+
+  newEl.id = id
+
+  const image = document.createElement('img')
+  const xBtn = document.createElement('div')
+  xBtn.classList.add('close-btn')
+  xBtn.textContent = "x"
+  xBtn.onclick = () => {
+    newEl.remove()
+    unassignedMember.push(mem);
+    const indexOf = unassignedMember.indexOf(mem)
+    assignedMember.splice(indexOf, 1)
+    renderSideBar(mem)
+    saveInlocalStorage(assignedMemberKey, assignedMember)
+    localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMember))
+    document.querySelector("#member-list p")?.classList.add("is-hidden")
+  }
+
+
+  image.src = memberImage || ''
+  image.alt = memberName || 'unkown'
+  image.className = 'image'
+  image.classList.add('image-config')
+  image.onclick = () => {
+    openDetailModal(mem)
+  }
+
+  newEl.classList.add('member-zone')
+  newEl.style.left = xPercent + '%'
+  newEl.style.top = yPercent + '%'
+
+
+  newEl.appendChild(image)
+  newEl.appendChild(xBtn)
+
+  newEl.addEventListener('dragstart', (e: DragEvent) => {
+    const data = e.dataTransfer
+    data!.setData('role', mem.role)
+    data!.setData('name', mem.name)
+    data!.setData('image', mem.image)
+    data?.setData('id', mem.id.toString())
+  })
+
+
+  return newEl
+}
+
+function initStackElements(member: IAMember) {
+  const newEl = document.createElement('div')
+
+  newEl.id = member.id.toString()
+
+  const image = document.createElement('img')
+  // const info = document.createElement('div')
+  const xBtn = document.createElement('div')
+  xBtn.classList.add('close-btn')
+  xBtn.textContent = "x"
+  xBtn.onclick = () => {
+    newEl.remove()
+    unassignedMember.push(member);
+    const indexOf = unassignedMember.indexOf(member)
+    assignedMember.splice(indexOf, 1)
+    renderSideBar(member)
+    saveInlocalStorage(assignedMemberKey, assignedMember)
+    localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMember))
+
+    document.querySelector("#member-list p")?.classList.add("is-hidden")
+  }
+
+
+  image.src = member.image || ''
+  image.alt = member.name || 'unkown'
+  image.className = 'image'
+  image.classList.add('image-config')
+  newEl.classList.add('member-zone')
+  newEl.style.left = member.left + '%'
+  newEl.style.top = member.top + '%'
+
+
+  newEl.onclick = () => {
+    openDetailModalCan(member)
+  }
+  newEl.appendChild(image)
+  newEl.appendChild(xBtn)
+
+  newEl.addEventListener('dragstart', (e: DragEvent) => {
+    const data = e.dataTransfer
+    data!.setData('role', member.role)
+    data!.setData('name', member.name)
+    data!.setData('image', member.image)
+    data?.setData('id', member.id.toString())
+  })
+
+  return newEl
+}
+
+function openDetailModalCan(member: IMember) {
+  const modal = document.getElementById("detail-modal")!;
+  modal.classList.remove("is-hidden");
+
+  // Fill the modal fields
+  (document.getElementById("detail-img") as HTMLImageElement).src = member.image;
+  (document.getElementById("detail-name") as HTMLElement).textContent = member.name;
+  (document.getElementById("detail-role") as HTMLElement).textContent = member.role.toUpperCase();
+  (document.getElementById("detail-email") as HTMLElement).textContent = member.email;
+  (document.getElementById("detail-phone") as HTMLElement).textContent = member.phone;
+
+  // Experience rendering
+  const expList = document.getElementById("detail-experience-list")!;
+  expList.innerHTML = "";
+
+  if (member.experience.length === 0) {
+    expList.innerHTML = "<p>No experience recorded.</p>";
+  } else {
+    member.experience.forEach(exp => {
+      const div = document.createElement("div");
+      div.className = "detail-exp";
+
+      div.innerHTML = `
+        <p><strong>Company:</strong> ${exp.company}</p>
+        <p><strong>Role:</strong> ${exp.role}</p>
+        <p><strong>From:</strong> ${new Date(exp.from).toLocaleDateString()}</p>
+        <p><strong>To:</strong> ${exp.to ? new Date(exp.to).toLocaleDateString() : "Present"}</p>
+        <hr />
+      `;
+
+      expList.appendChild(div);
+    });
+  }
+}
+
+
+dragAndDrop()
+
+getFromLocalStrorage()
+initModal();
+initForm();
 initDetailModal();
 
+
+function createModal(member: IMember) {
+  const modal = document.createElement("div");
+  modal.className = "modal is-hidden";
+  modal.id = "modal";
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal__overlay";
+  modal.appendChild(overlay);
+
+
+  const content = document.createElement("div");
+  content.className = "modal__content";
+  modal.appendChild(content);
+
+
+  const header = document.createElement("header");
+  header.className = "modal__header";
+
+  const title = document.createElement("h3");
+  title.className = "modal__title";
+  title.id = "modal-title";
+  title.textContent = "Add a member";
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "modal__close";
+  closeBtn.id = "close-modal";
+  closeBtn.dataset.action = "close-modal";
+  closeBtn.textContent = "×";
+
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+  content.appendChild(header);
+
+
+  const body = document.createElement("div");
+  body.className = "modal__body";
+  body.id = "modal-body";
+  content.appendChild(body);
+
+
+  const form = document.createElement("form");
+  form.className = "form";
+  form.id = "form";
+  body.appendChild(form);
+
+  const mainInfo = document.createElement("div");
+  mainInfo.className = "main-info";
+  form.appendChild(mainInfo);
+
+
+  function createInputGroup(value: string, labelText: string, id: string, type: string, placeholder: string) {
+    const group = document.createElement("div");
+    group.className = "form__group";
+
+    const label = document.createElement("label");
+    label.className = "form__label";
+    label.htmlFor = id;
+    label.textContent = labelText;
+
+    const input = document.createElement("input");
+    input.value = value;
+    input.type = type;
+    input.id = id;
+    input.className = type;
+    input.classList.add(id)
+    input.placeholder = placeholder;
+
+    group.append(label, input);
+    return group;
+  }
+
+  mainInfo.appendChild(
+    createInputGroup(member.name, "Name", "name", "text", "Enter member name")
+  );
+  mainInfo.appendChild(
+    (function () {
+      const group = document.createElement("div");
+      group.className = "form__group";
+
+      const label = document.createElement("label");
+      label.className = "form__label";
+
+      label.textContent = "Role";
+
+      const select = document.createElement("select");
+      select.id = "role";
+      select.className = "role";
+
+      ["receptionist", "it", "security", "cleaning", "other"].forEach((r) => {
+        const option = document.createElement("option");
+        option.value = r;
+        option.textContent = r[0].toUpperCase() + r.slice(1);
+        select.appendChild(option);
+      });
+
+      group.append(label, select);
+      return group;
+    })()
+  );
+
+  mainInfo.appendChild(
+    createInputGroup(member.email, "E-mail", "email", "email", "example@example.com")
+  );
+
+  mainInfo.appendChild(
+    createInputGroup(member.phone, "Phone", "phone", "phone", "06xxxxxx")
+  );
+
+  const imgGroup = document.createElement("div");
+  imgGroup.className = "form__group";
+
+  const imgLabel = document.createElement("label");
+  imgLabel.className = "form__label";
+  imgLabel.textContent = "Image URL";
+  imgLabel.htmlFor = "image";
+
+  const imgInput = document.createElement("input");
+  imgInput.type = "url";
+  imgInput.id = "image";
+  imgInput.className = "input link";
+  imgInput.classList.add("image");
+  imgInput.value = member.image
+  // imgInput.placeholder = "https://example.com/image.jpg";
+
+  const imgFrame = document.createElement("div");
+  imgFrame.className = "img-frame";
+
+
+  const preview = document.createElement("img");
+  preview.id = "preview";
+  preview.src = member.image;
+  preview.alt = "Image Preview";
+
+  imgFrame.appendChild(preview);
+  imgGroup.append(imgLabel, imgInput, imgFrame);
+  mainInfo.appendChild(imgGroup);
+
+  imgInput.addEventListener("input", () => {
+    preview.src = imgInput.value || "./assets/avatars/favatar.webp";
+  });
+
+  // expers
+  if (member.experience.length !== 0) {
+    for (const ex of member.experience) {
+      mainInfo.appendChild(createExperienceItem(ex.id, ex));
+    }
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "form__actions";
+
+  const submitBtn = document.createElement("button");
+  submitBtn.type = "submit";
+  submitBtn.className = "btn btn-add-tolist";
+  submitBtn.textContent = "Update member";
+
+  actions.appendChild(submitBtn);
+
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault()
+
+
+    const nameInput = (form.getElementsByClassName("text")[0] as HTMLInputElement).value.trim();
+    const roleInput = (form.getElementsByClassName("role")[0] as HTMLSelectElement).value;
+    const emailInput = (form.getElementsByClassName("email")[0] as HTMLInputElement).value.trim();
+    const phoneInput = (form.getElementsByClassName("phone")[0] as HTMLInputElement).value.trim();
+    const imageInput = (form.getElementsByClassName("image")[0] as HTMLInputElement).value.trim();
+
+
+    member.name = nameInput;
+    member.role = roleInput as any;
+    member.email = emailInput;
+    member.phone = phoneInput;
+    member.image = imageInput;
+
+
+
+    const expElements = form.querySelectorAll(".experience");
+
+    member.experience = [];
+    expElements.forEach((exp: Element) => {
+      const id = Number(exp.getAttribute("data-exp-id"));
+      const company = (form.querySelector(`#company-${id}`) as HTMLInputElement).value;
+      const role = (form.querySelector(`#role-${id}`) as HTMLInputElement).value;
+      const from = ((form.querySelector(`#startDate-${id}`) as HTMLInputElement)).value;
+      const endVal = (form.querySelector(`#endDate-${id}`) as HTMLInputElement).value;
+      const to = endVal ? new Date(endVal) : null;
+
+      member.experience.push({
+        id: member.id.toString(),
+        company,
+        role,
+        from: new Date(from),
+        to,
+      });
+    });
+
+    saveInlocalStorage();
+
+    // Close modal
+    modal.classList.add("is-hidden");
+    renderAllOneTime()
+
+
+  })
+
+
+
+  form.appendChild(actions);
+
+
+  closeBtn.addEventListener("click", () => {
+    modal.classList.add("is-hidden");
+  });
+
+  overlay.addEventListener("click", () => {
+    modal.classList.add("is-hidden");
+  });
+
+
+  document.body.appendChild(modal);
+
+  return modal;
+}
+
+function renderAllOneTime() {
+  const container = document.getElementById("member-list")!;
+  container.innerHTML = ""
+  unassignedMember.forEach((un) => {
+    renderSideBar(un);
+  })
+}
+
+function createExperienceItem(index: string, experience: IExperience) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "experience";
+  wrapper.id = index;
+
+  // ---- Header ----
+  const head = document.createElement("div");
+  head.className = "exp-head";
+
+  const title = document.createElement("p");
+  title.textContent = "Experience";
+
+
+
+  head.appendChild(title);
+  wrapper.appendChild(head);
+
+  const createInputGroup = (labelTxt: string, idBase: string, type: string, value: string | Date = "") => {
+    const group = document.createElement("div");
+    group.className = "form__group";
+
+    const label = document.createElement("label");
+    label.className = "form__label";
+    label.setAttribute("for", `${idBase}-${index}`);
+    label.textContent = labelTxt;
+
+    const input = document.createElement("input");
+    input.className = "input";
+    input.id = `${idBase}-${index}`;
+    input.type = type;
+
+
+    if (type == "date") {
+
+      const myDate = new Date(value);
+
+
+      try {
+        const ymd = myDate.toISOString().split("T")[0].trim();
+
+        input.value = ymd;
+      } catch (error) {
+
+      }
+
+
+
+    } else {
+
+
+      input.value = value as string;
+    }
+
+    group.appendChild(label);
+    group.appendChild(input);
+    return group;
+  };
+
+  wrapper.appendChild(
+    createInputGroup("Company", "company", "text", experience?.company || "")
+  );
+  wrapper.appendChild(
+    createInputGroup("Role", "role", "text", experience?.role || "")
+  );
+  wrapper.appendChild(
+    createInputGroup("Start Date", "startDate", "date", experience.from)
+  );
+  wrapper.appendChild(
+    createInputGroup("End Date", "endDate", "date", experience?.to || "")
+  );
+
+  return wrapper;
+}
