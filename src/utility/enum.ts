@@ -17,10 +17,10 @@ export enum roomEnum {
 }
 
 export const RoomAccess: Record<roomEnum, roleEnum[]> = {
-  [roomEnum.conference]: [roleEnum.it, roleEnum.cleaning, roleEnum.manager],
+  [roomEnum.conference]: [roleEnum.it, roleEnum.cleaning, roleEnum.manager, roleEnum.other],
   [roomEnum.security]: [roleEnum.security, roleEnum.manager, roleEnum.cleaning],
   [roomEnum.server]: [roleEnum.it, roleEnum.manager],
   [roomEnum.reception]: [roleEnum.receptionist, roleEnum.manager, roleEnum.cleaning],
-  [roomEnum.staff]: [roleEnum.it, roleEnum.security, roleEnum.manager, roleEnum.cleaning],
-  [roomEnum.vault]: [roleEnum.manager],
+  [roomEnum.staff]: [roleEnum.it, roleEnum.security, roleEnum.manager, roleEnum.cleaning, roleEnum.other],
+  [roomEnum.vault]: [roleEnum.manager, roleEnum.other],
 }

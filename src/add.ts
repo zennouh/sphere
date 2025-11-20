@@ -1,12 +1,19 @@
 import { IExperience, IMember, IAMember, inputFields } from './utility/mytypes.js';
 import { checkRoomeAndRole, stringValidate, toRoleEnumValue, toRoomEnumValue } from "./utility/helpers.js";
 
-
 const unassignedMemberKey = "unassignedMemberKey"
 const assignedMemberKey = "assignedMemberKey"
 
 let memberId = 0;
 let experienceId = 0;
+
+let zonesCapacity = {
+  vault: 0,
+  staff: 0, reception: 0,
+  server: 0, security: 0, conference: 0
+}
+
+type ZoneType = keyof typeof zonesCapacity;
 
 let unassignedMembers: IMember[] = [];
 let assignedMembers: IAMember[] = [];
@@ -16,27 +23,27 @@ const addBtn = document.getElementById('add-member')!;
 const form = document.getElementById('form') as HTMLFormElement;
 const imgPrev = document.getElementById("preview") as HTMLImageElement;
 
-
-function saveInlocalStorage(key: string = unassignedMemberKey, arr = unassignedMembers) {
-  localStorage.setItem(key, JSON.stringify(arr))
+function saveInlocalStorage() {
+  localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers));
+  localStorage.setItem(assignedMemberKey, JSON.stringify(assignedMembers));
 }
 
-function getFromLocalStrorage(key: string = unassignedMemberKey) {
-  unassignedMembers = JSON.parse(localStorage.getItem(key) || "[]") || [];
+function getFromLocalStrorage() {
+  unassignedMembers = JSON.parse(localStorage.getItem(unassignedMemberKey) || "[]");
+  assignedMembers = JSON.parse(localStorage.getItem(assignedMemberKey) || "[]");
 
-  const l = document.getElementById("member-list");
-  l!.innerHTML = `<p class='no-members ${unassignedMembers.length == 0 ? "" : "is-hidden"}'>No member here</p>`;
+  const l = document.getElementById("member-list")!;
+  l.innerHTML = `<p class='no-members ${unassignedMembers.length === 0 ? "" : "is-hidden"}'>No member here</p>`;
 
-  unassignedMembers.forEach((e) => renderSideBar(e))
+  unassignedMembers.forEach((m) => renderSideBar(m));
 }
+
 
 function previewImage() {
   const imageInput = document.getElementById("image") as HTMLInputElement;
 
   imageInput.addEventListener("change", () => {
-
     imgPrev.src = imageInput.value
-
   });
 }
 
@@ -155,11 +162,9 @@ function initForm() {
     const valid = validateHtmlInputs(fields);
     const experiences = extractExper();
 
-
-
     if (valid && experiences !== null) {
       const member: IMember = {
-        id: memberId++,
+        id: Math.random(),
         name: nameInput.value,
         role: toRoleEnumValue(roleSelect.value)!,
         email: emailInput.value,
@@ -168,8 +173,7 @@ function initForm() {
         experience: experiences
       };
 
-
-      document.getElementById("member-list p")?.classList.add("is-hidden")
+      document.querySelector("#member-list p")?.classList.add("is-hidden")
       unassignedMembers.push(member);
       saveInlocalStorage();
       renderSideBar(member);
@@ -184,22 +188,25 @@ function renderSideBar(member: IMember) {
 
   div.className = "member";
   div.draggable = true;
-  div.id = `${member.id}`;
+  div.id = `side-${member.id}`;
   div.dataset.type = member.role;
 
   div.innerHTML = `
-    <div class="info">
-      <img src="${member.image}" alt="avatar" />
-      <div class="person-info">
-        <div class="name">${member.name}</div>
-        <div class="post">${(member.role as unknown as string).toUpperCase()}</div>
-        <div class= "member-btns">
-          <div class="edit-btn">Edit</div>
-          <div class="detail-btn">Details</div>
-          <div class="delete-btn">Delete</div>
-        </div>
-      </div>
+    <div class="member-card">
+  <img class="avatar" src="${member.image}" alt="avatar" />
+
+  <div class="info">
+    <div class="name">${member.name}</div>
+    <div class="post">${(member.role as unknown as string).toUpperCase()}</div>
+
+    <div class="member-btns">
+      <div class="edit-btn">Edit</div>
+      <div class="detail-btn">Details</div>
+      <div class="delete-btn">Delete</div>
     </div>
+  </div>
+</div>
+
   `;
   document.querySelector("#member-list p")?.classList.add("is-hidden")
   div.querySelector(".detail-btn")!.addEventListener("click", () => {
@@ -240,8 +247,6 @@ function validateHtmlInputs(inputs: { [k: string]: HTMLInputElement }) {
   let ok = true;
 
   Object.entries(inputs).forEach(([key, input]) => {
-    console.log("[key, value]: ", [key, input]);
-
     if (!stringValidate(input.value.trim(), key as inputFields)) {
       addErrorMessage(input, `Please enter a valid ${key}`, key);
       ok = false;
@@ -262,7 +267,6 @@ function validateExperHtmlInputs(inputs: { [k: string]: HTMLInputElement }) {
     addErrorMessage(inputs.role, "Please enter a valid role", "role");
     ok = false;
   }
-
 
   if (!inputs.from.value.trim()) {
     addErrorMessage(inputs.from, "Please enter a valid start date", "startDate");
@@ -298,13 +302,9 @@ function removeErrorMsg() {
   document.querySelectorAll(".error-msg").forEach((e) => e.remove());
 }
 
-
-
 function openDetailModal(member: IMember) {
   const modal = document.getElementById("detail-modal")!;
   modal.classList.remove("is-hidden");
-
-
 
   (document.getElementById("detail-img") as HTMLImageElement).src = member.image;
   (document.getElementById("detail-name") as HTMLElement).textContent = member.name;
@@ -357,10 +357,12 @@ function onDrop(e: DragEvent) {
   const memberImage = dataTransfer?.getData('image') || 'img'
   const memberEmail = dataTransfer?.getData('email') || 'email'
   const memberPhone = dataTransfer?.getData('phone') || 'phone'
+
   const memberExpers = JSON.parse(dataTransfer?.getData("expers") || "[]") as IExperience[]
   const id = dataTransfer?.getData('id') || ''
 
-  const member = document.getElementById(id)
+  const sidebarMemberEl = document.getElementById(`side-${id}`)
+  const canvasMemberEl = document.getElementById(`can-${id}`)
 
   const zone = document.elementFromPoint(
     e.clientX,
@@ -381,7 +383,16 @@ function onDrop(e: DragEvent) {
     alert('You drag wrong member to zone')
     return
   }
-
+  ////
+  // const zoneName = zone.dataset.room! as ZoneType;
+  // const zoneCapacity = +zone.dataset.capacity!
+  // if (zonesCapacity[zoneName] < zoneCapacity) {
+  //   zonesCapacity[zoneName]++;
+  // } else {
+  //   alert('The zone has filled')
+  //   return
+  // }
+  ////
   const rect = canvas.getBoundingClientRect()
   const newEl = createStackElement(
     e,
@@ -395,7 +406,9 @@ function onDrop(e: DragEvent) {
     memberExpers
   )
 
-  member?.remove()
+  if (sidebarMemberEl) sidebarMemberEl.remove()
+  if (canvasMemberEl) canvasMemberEl.remove()
+
   canvas.appendChild(newEl)
 }
 
@@ -404,12 +417,10 @@ function dragAndDrop() {
 
   assignedMembers.push(...JSON.parse(localStorage.getItem(assignedMemberKey) || "[]"));
 
-
   assignedMembers.forEach((m: IAMember) => {
     const ele = initStackElements(m);
     canvas?.appendChild(ele)
   })
-
 
   canvas?.addEventListener('dragover', (e) => {
     e.preventDefault()
@@ -429,12 +440,7 @@ function createStackElement(
   memberPhone: string,
   memberExpers: IExperience[]
 ) {
-
-  // console.log("------------------------------------");
-
-  // const newEle = document.createElement('div')
-  // return newEle;
- 
+  console.log();
 
   const mem: IMember = {
     id: +id,
@@ -475,20 +481,18 @@ function createStackElement(
   assignMem.top = yPercent;
   assignMem.left = xPercent;
 
-  saveInlocalStorage(assignedMemberKey, assignedMembers)
   saveInlocalStorage()
-
+  saveInlocalStorage()
 
   const newEl = document.createElement('div')
 
-  newEl.id = id
+  newEl.id = `can-${id}`
 
   const image = document.createElement('img')
   const xBtn = document.createElement('div')
   xBtn.classList.add('close-btn')
   xBtn.textContent = "x"
   xBtn.onclick = () => {
-
     newEl.remove()
     unassignedMembers.push(mem);
     const unIdx = unassignedMembers.findIndex((m) => m.id === mem.id)
@@ -496,13 +500,10 @@ function createStackElement(
     if (assignedIdx > -1) assignedMembers.splice(assignedIdx, 1)
 
     renderSideBar(mem)
-    saveInlocalStorage(assignedMemberKey, assignedMembers)
+    saveInlocalStorage()
     localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers))
     document.querySelector("#member-list p")?.classList.add("is-hidden")
-
-
   }
-
 
   image.src = memberImage || ''
   image.alt = memberName || 'unkown'
@@ -516,7 +517,6 @@ function createStackElement(
   newEl.style.left = xPercent + '%'
   newEl.style.top = yPercent + '%'
 
-
   newEl.appendChild(image)
   newEl.appendChild(xBtn)
 
@@ -524,46 +524,35 @@ function createStackElement(
     const data = e.dataTransfer
     data!.setData('role', (mem.role as unknown as string))
     data!.setData('name', mem.name)
+    data!.setData('email', mem.email)
+    data!.setData('phone', mem.phone)
     data!.setData('image', mem.image)
-    data?.setData('id', mem.id.toString())
+    data!.setData('expers', JSON.stringify(mem.experience))
+    data!.setData('id', mem.id.toString())
   })
-
 
   return newEl
 }
 
 function initStackElements(member: IAMember) {
-  //   console.log("++++++++++++++++++++++++++++++++++++++++++");
-
-  // const newEle = document.createElement('div')
-  // return newEle;
-
   const newEl = document.createElement('div')
 
-  newEl.id = member.id.toString()
+  newEl.id = `can-${member.id}`
 
   const image = document.createElement('img')
   const xBtn = document.createElement('div')
   xBtn.classList.add('close-btn')
   xBtn.textContent = "x"
   xBtn.onclick = () => {
-
     newEl.remove()
-
     unassignedMembers.push(member);
-
     const assignedIdx = assignedMembers.findIndex((d) => d.id == member.id)
     if (assignedIdx > -1) assignedMembers.splice(assignedIdx, 1)
-
     renderSideBar(member)
-
-    saveInlocalStorage(assignedMemberKey, assignedMembers)
-
+    saveInlocalStorage()
     localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers))
-
     document.querySelector("#member-list p")?.classList.add("is-hidden")
   }
-
 
   image.src = member.image || ''
   image.alt = member.name || 'unkown'
@@ -572,7 +561,6 @@ function initStackElements(member: IAMember) {
   newEl.classList.add('member-zone')
   newEl.style.left = member.left + '%'
   newEl.style.top = member.top + '%'
-
 
   newEl.onclick = () => {
     openDetailModalCan(member)
@@ -585,6 +573,10 @@ function initStackElements(member: IAMember) {
     data!.setData('role', (member.role as unknown as string))
     data!.setData('name', member.name)
     data!.setData('image', member.image)
+    data!.setData('phone', member.phone)
+    data!.setData('email', member.email)
+    data?.setData('expers', JSON.stringify(member.experience))
+    console.log(member.experience);
     data?.setData('id', member.id.toString())
   })
 
@@ -624,14 +616,11 @@ function openDetailModalCan(member: IMember) {
   }
 }
 
-
 dragAndDrop()
-
 getFromLocalStrorage()
 initModal();
 initForm();
 initDetailModal();
-
 
 function createModal(member: IMember) {
   const modal = document.createElement("div");
@@ -642,11 +631,9 @@ function createModal(member: IMember) {
   overlay.className = "modal__overlay";
   modal.appendChild(overlay);
 
-
   const content = document.createElement("div");
   content.className = "modal__content";
   modal.appendChild(content);
-
 
   const header = document.createElement("header");
   header.className = "modal__header";
@@ -666,12 +653,10 @@ function createModal(member: IMember) {
   header.appendChild(closeBtn);
   content.appendChild(header);
 
-
   const body = document.createElement("div");
   body.className = "modal__body";
   body.id = "modal-body";
   content.appendChild(body);
-
 
   const form = document.createElement("form");
   form.className = "form";
@@ -681,7 +666,6 @@ function createModal(member: IMember) {
   const mainInfo = document.createElement("div");
   mainInfo.className = "main-info";
   form.appendChild(mainInfo);
-
 
   function createInputGroup(value: string, labelText: string, id: string, type: string, placeholder: string) {
     const group = document.createElement("div");
@@ -759,7 +743,6 @@ function createModal(member: IMember) {
   const imgFrame = document.createElement("div");
   imgFrame.className = "img-frame";
 
-
   const preview = document.createElement("img");
   preview.id = "preview";
   preview.src = member.image;
@@ -789,10 +772,8 @@ function createModal(member: IMember) {
 
   actions.appendChild(submitBtn);
 
-
   form.addEventListener("submit", (e) => {
     e.preventDefault()
-
 
     const nameInput = (form.getElementsByClassName("text")[0] as HTMLInputElement).value.trim();
     const roleInput = (form.getElementsByClassName("role")[0] as HTMLSelectElement).value;
@@ -800,14 +781,11 @@ function createModal(member: IMember) {
     const phoneInput = (form.getElementsByClassName("phone")[0] as HTMLInputElement).value.trim();
     const imageInput = (form.getElementsByClassName("image")[0] as HTMLInputElement).value.trim();
 
-
     member.name = nameInput;
     member.role = roleInput as any;
     member.email = emailInput;
     member.phone = phoneInput;
     member.image = imageInput;
-
-
 
     const expElements = form.querySelectorAll(".experience");
 
@@ -833,12 +811,9 @@ function createModal(member: IMember) {
 
     modal.classList.add("is-hidden");
     renderAllOneTime()
-
-
   })
 
   form.appendChild(actions);
-
 
   closeBtn.addEventListener("click", () => {
     modal.classList.add("is-hidden");
@@ -847,7 +822,6 @@ function createModal(member: IMember) {
   overlay.addEventListener("click", () => {
     modal.classList.add("is-hidden");
   });
-
 
   document.body.appendChild(modal);
 
