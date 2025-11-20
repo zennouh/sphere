@@ -93,21 +93,17 @@ svg {
 }
 
 .zone {
-  fill: var(--zone-fill);
-  stroke: var(--text-grey);
-  stroke-width: 1.5;
-  cursor: pointer;
+  fill: transparent;
+  stroke: transparent;
   transition: fill 0.15s, stroke 0.15s;
 }
 
-.zone.empty {
-  fill: var(--zone-empty);
+.empty {
+  fill: rgba(255, 0, 0, 0.581);
+  stroke: transparent;
+
 }
 
-.zone:hover {
-  fill: var(--zone-hover);
-  stroke: var(--accent-green);
-}
 
 .member-zone {
   flex-direction: row;
@@ -249,22 +245,9 @@ form {
   gap: 10px;
 }
 
-
-.btn-add-member {
-  display: none;
-}
-
-.add-mobile {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--accent-green);
-  height: 35px;
-  width: 35px;
-  border-radius: 50%;
+ 
 
 
-}
 
 .float {
   border: none;
@@ -284,7 +267,7 @@ form {
   padding: 18px;
   background: var(--dark-3);
   border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
   transition: .25s ease;
   border: 1px solid #eee;
 }
@@ -419,26 +402,16 @@ form {
     height: 90px;
     width: 250px;
   }
+ 
 
-  .btn-add-member {
-    display: block;
-  }
 
-  .add-mobile {
-    display: none;
-  }
 }
 
 @media (min-width: 1024px) {
 
+ 
 
-  .btn-add-member {
-    display: block;
-  }
 
-  .add-mobile {
-    display: none;
-  }
 
   .canvas {
     position: relative;

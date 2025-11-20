@@ -23,6 +23,36 @@ const addBtn = document.getElementById('add-member')!;
 const form = document.getElementById('form') as HTMLFormElement;
 const imgPrev = document.getElementById("preview") as HTMLImageElement;
 
+function localStorageZoneCapacity() {
+  localStorage.setItem("zone-capacity", JSON.stringify(zonesCapacity));
+}
+
+function getLocalStorZoneCapacity() {
+  Object.assign(zonesCapacity, JSON.parse(localStorage.getItem("zone-capacity") || `{}`));
+  console.log("capacity: ", zonesCapacity);
+}
+
+getLocalStorZoneCapacity()
+checkObligatoryZone();
+
+function checkObligatoryZone() {
+  const polygones = Array.from(document.getElementsByTagName("polygon"))
+    .filter((zone) => !zone.dataset.room!.includes("conference") && !zone.dataset.room!.includes("reception"))
+  console.log(polygones);
+
+  polygones.forEach((zone) => {
+    const zoneName = zone.dataset.room! as ZoneType;
+    if (zonesCapacity[zoneName] == 0) {
+      zone.classList.add("empty")
+    } else {
+      zone.classList.remove("empty")
+    }
+  })
+
+
+}
+
+
 function saveInlocalStorage() {
   localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers));
   localStorage.setItem(assignedMemberKey, JSON.stringify(assignedMembers));
@@ -170,6 +200,7 @@ function initForm() {
         email: emailInput.value,
         phone: phoneInput.value,
         image: imageInput.value,
+        zone: "",
         experience: experiences
       };
 
@@ -237,6 +268,7 @@ function renderSideBar(member: IMember) {
     dataTransfer?.setData('role', member.role!)
     dataTransfer?.setData('email', member.email!)
     dataTransfer?.setData('phone', member.phone!)
+    dataTransfer?.setData('zone', member.zone!)
     dataTransfer?.setData('expers', JSON.stringify(member.experience))
     dataTransfer?.setData('id', `${member.id}`)
   })
@@ -348,6 +380,8 @@ function initDetailModal() {
   });
 }
 
+
+
 function onDrop(e: DragEvent) {
   e.preventDefault()
   const canvas = document.getElementById('canvas')!
@@ -357,6 +391,7 @@ function onDrop(e: DragEvent) {
   const memberImage = dataTransfer?.getData('image') || 'img'
   const memberEmail = dataTransfer?.getData('email') || 'email'
   const memberPhone = dataTransfer?.getData('phone') || 'phone'
+  const memberZone = dataTransfer?.getData('zone') || '';
 
   const memberExpers = JSON.parse(dataTransfer?.getData("expers") || "[]") as IExperience[]
   const id = dataTransfer?.getData('id') || ''
@@ -383,17 +418,29 @@ function onDrop(e: DragEvent) {
     alert('You drag wrong member to zone')
     return
   }
+  if (memberZone == zone.dataset.room) {
+    console.log("samename");
+
+    return;
+  }
   ////
-  // const zoneName = zone.dataset.room! as ZoneType;
-  // const zoneCapacity = +zone.dataset.capacity!
-  // if (zonesCapacity[zoneName] < zoneCapacity) {
-  //   zonesCapacity[zoneName]++;
-  // } else {
-  //   alert('The zone has filled')
-  //   return
-  // }
+  const zoneName = zone.dataset.room! as ZoneType;
+  const zoneCapacity = +zone.dataset.capacity!
+  if (zonesCapacity[zoneName] < zoneCapacity) {
+    console.log("dkhal");
+
+    zonesCapacity[zoneName]++;
+    localStorageZoneCapacity()
+    checkObligatoryZone()
+    // console.log("dkhaaaal");
+
+  } else {
+    alert('The zone has filled')
+    return
+  }
   ////
-  const rect = canvas.getBoundingClientRect()
+
+  const rect = canvas.getBoundingClientRect();
   const newEl = createStackElement(
     e,
     rect,
@@ -403,6 +450,7 @@ function onDrop(e: DragEvent) {
     id,
     memberEmail,
     memberPhone,
+    zone.dataset.room!,
     memberExpers
   )
 
@@ -438,6 +486,7 @@ function createStackElement(
   id: string,
   memberEmail: string,
   memberPhone: string,
+  memberZone: string,
   memberExpers: IExperience[]
 ) {
   console.log();
@@ -449,6 +498,7 @@ function createStackElement(
     email: memberEmail,
     phone: memberPhone,
     role: toRoleEnumValue(memberType)!,
+    zone: memberZone,
     experience: memberExpers,
   };
 
@@ -495,12 +545,18 @@ function createStackElement(
   xBtn.onclick = () => {
     newEl.remove()
     unassignedMembers.push(mem);
-    const unIdx = unassignedMembers.findIndex((m) => m.id === mem.id)
+    // const unIdx = unassignedMembers.findIndex((m) => m.id === mem.id)
     const assignedIdx = assignedMembers.findIndex((m) => m.id === mem.id)
     if (assignedIdx > -1) assignedMembers.splice(assignedIdx, 1)
 
     renderSideBar(mem)
     saveInlocalStorage()
+    const zoneName = memberZone as ZoneType;
+
+    zonesCapacity[zoneName]--;
+    localStorageZoneCapacity()
+    checkObligatoryZone()
+    mem.zone = ""
     localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers))
     document.querySelector("#member-list p")?.classList.add("is-hidden")
   }
@@ -527,6 +583,7 @@ function createStackElement(
     data!.setData('email', mem.email)
     data!.setData('phone', mem.phone)
     data!.setData('image', mem.image)
+    data!.setData('zone', mem.zone)
     data!.setData('expers', JSON.stringify(mem.experience))
     data!.setData('id', mem.id.toString())
   })
@@ -550,6 +607,14 @@ function initStackElements(member: IAMember) {
     if (assignedIdx > -1) assignedMembers.splice(assignedIdx, 1)
     renderSideBar(member)
     saveInlocalStorage()
+
+    const zoneName = member.zone as ZoneType;
+
+    zonesCapacity[zoneName]--;
+    localStorageZoneCapacity()
+    checkObligatoryZone()
+
+    checkObligatoryZone()
     localStorage.setItem(unassignedMemberKey, JSON.stringify(unassignedMembers))
     document.querySelector("#member-list p")?.classList.add("is-hidden")
   }
@@ -574,6 +639,7 @@ function initStackElements(member: IAMember) {
     data!.setData('name', member.name)
     data!.setData('image', member.image)
     data!.setData('phone', member.phone)
+    data!.setData('zone', member.zone)
     data!.setData('email', member.email)
     data?.setData('expers', JSON.stringify(member.experience))
     console.log(member.experience);

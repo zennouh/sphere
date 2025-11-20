@@ -16,6 +16,7 @@ export interface IMember {
   id: number
   name: string
   role: roleEnum
+  zone:string,
   image: string
   email: string
   phone: string
